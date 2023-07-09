@@ -455,6 +455,7 @@ namespace config {
     {},  // cmd args
     47989,
     platf::appdata().string() + "/sunshine.log",  // log file
+    "ipv4",
     {},  // prep commands
   };
 
@@ -1042,10 +1043,11 @@ namespace config {
 
     bool_f(vars, "always_send_scancodes", input.always_send_scancodes);
 
-    int port = sunshine.port;
+    int port = config::sunshine.port;
     int_f(vars, "port"s, port);
-    sunshine.port = (std::uint16_t) port;
+    config::sunshine.port = (std::uint16_t) port;
 
+    string_restricted_f(vars, "address_family", config::sunshine.address_family, { "ipv4"sv, "both"sv });
     bool upnp = false;
     bool_f(vars, "upnp"s, upnp);
 
@@ -1058,31 +1060,31 @@ namespace config {
 
     if (!log_level_string.empty()) {
       if (log_level_string == "verbose"sv) {
-        sunshine.min_log_level = 0;
+        config::sunshine.min_log_level = 0;
       }
       else if (log_level_string == "debug"sv) {
-        sunshine.min_log_level = 1;
+        config::sunshine.min_log_level = 1;
       }
       else if (log_level_string == "info"sv) {
-        sunshine.min_log_level = 2;
+        config::sunshine.min_log_level = 2;
       }
       else if (log_level_string == "warning"sv) {
-        sunshine.min_log_level = 3;
+        config::sunshine.min_log_level = 3;
       }
       else if (log_level_string == "error"sv) {
-        sunshine.min_log_level = 4;
+        config::sunshine.min_log_level = 4;
       }
       else if (log_level_string == "fatal"sv) {
-        sunshine.min_log_level = 5;
+        config::sunshine.min_log_level = 5;
       }
       else if (log_level_string == "none"sv) {
-        sunshine.min_log_level = 6;
+        config::sunshine.min_log_level = 6;
       }
       else {
         // accept digit directly
         auto val = log_level_string[0];
         if (val >= '0' && val < '7') {
-          sunshine.min_log_level = val - '0';
+          config::sunshine.min_log_level = val - '0';
         }
       }
     }
@@ -1094,7 +1096,7 @@ namespace config {
       vars.erase(it);
     }
 
-    if (sunshine.min_log_level <= 3) {
+    if (config::sunshine.min_log_level <= 3) {
       for (auto &[var, _] : vars) {
         std::cout << "Warning: Unrecognized configurable option ["sv << var << ']' << std::endl;
       }
@@ -1126,9 +1128,9 @@ namespace config {
 #endif
       else if (*line == '-') {
         if (*(line + 1) == '-') {
-          sunshine.cmd.name = line + 2;
-          sunshine.cmd.argc = argc - x - 1;
-          sunshine.cmd.argv = argv + x + 1;
+          config::sunshine.cmd.name = line + 2;
+          config::sunshine.cmd.argc = argc - x - 1;
+          config::sunshine.cmd.argv = argv + x + 1;
 
           break;
         }
@@ -1171,12 +1173,12 @@ namespace config {
       }
 
       // Create empty config file if it does not exist
-      if (!fs::exists(sunshine.config_file)) {
-        std::ofstream { sunshine.config_file };
+      if (!fs::exists(config::sunshine.config_file)) {
+        std::ofstream { config::sunshine.config_file };
       }
 
       // Read config file
-      auto vars = parse_config(read_file(sunshine.config_file.c_str()));
+      auto vars = parse_config(read_file(config::sunshine.config_file.c_str()));
 
       for (auto &[name, value] : cmd_vars) {
         vars.insert_or_assign(std::move(name), std::move(value));

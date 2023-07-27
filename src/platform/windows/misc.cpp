@@ -153,16 +153,19 @@ namespace platf {
     adapteraddrs_t info = get_adapteraddrs();
     for (auto adapter_pos = info.get(); adapter_pos != nullptr; adapter_pos = adapter_pos->Next) {
       for (auto addr_pos = adapter_pos->FirstUnicastAddress; addr_pos != nullptr; addr_pos = addr_pos->Next) {
-        if (adapter_pos->PhysicalAddressLength != 0 && address == from_sockaddr(addr_pos->Address.lpSockaddr)) {
-          std::stringstream mac_addr;
-          mac_addr << std::hex;
-          for (int i = 0; i < adapter_pos->PhysicalAddressLength; i++) {
-            if (i > 0) {
-              mac_addr << ':';
+        if (adapter_pos->PhysicalAddressLength != 0) {
+          std::string posAddress = from_sockaddr(addr_pos->Address.lpSockaddr);
+          if (address == posAddress || address == "::ffff:" + posAddress) {
+            std::stringstream mac_addr;
+            mac_addr << std::hex;
+            for (int i = 0; i < adapter_pos->PhysicalAddressLength; i++) {
+              if (i > 0) {
+                mac_addr << ':';
+              }
+              mac_addr << std::setw(2) << std::setfill('0') << (int) adapter_pos->PhysicalAddress[i];
             }
-            mac_addr << std::setw(2) << std::setfill('0') << (int) adapter_pos->PhysicalAddress[i];
+            return mac_addr.str();
           }
-          return mac_addr.str();
         }
       }
     }

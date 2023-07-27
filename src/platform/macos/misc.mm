@@ -148,31 +148,34 @@ namespace platf {
     auto ifaddrs = get_ifaddrs();
 
     for (auto pos = ifaddrs.get(); pos != nullptr; pos = pos->ifa_next) {
-      if (pos->ifa_addr && address == from_sockaddr(pos->ifa_addr)) {
-        BOOST_LOG(verbose) << "Looking for MAC of "sv << pos->ifa_name;
+      if (pos->ifa_addr) {
+        std::string posAddress = from_sockaddr(pos->ifa_addr);
+        if (address == posAddress || address == "::ffff:" + posAddress) {
+          BOOST_LOG(verbose) << "Looking for MAC of "sv << pos->ifa_name;
 
-        struct ifaddrs *ifap, *ifaptr;
-        unsigned char *ptr;
-        std::string mac_address;
+          struct ifaddrs *ifap, *ifaptr;
+          unsigned char *ptr;
+          std::string mac_address;
 
-        if (getifaddrs(&ifap) == 0) {
-          for (ifaptr = ifap; ifaptr != NULL; ifaptr = (ifaptr)->ifa_next) {
-            if (!strcmp((ifaptr)->ifa_name, pos->ifa_name) && (((ifaptr)->ifa_addr)->sa_family == AF_LINK)) {
-              ptr = (unsigned char *) LLADDR((struct sockaddr_dl *) (ifaptr)->ifa_addr);
-              char buff[100];
+          if (getifaddrs(&ifap) == 0) {
+            for (ifaptr = ifap; ifaptr != NULL; ifaptr = (ifaptr)->ifa_next) {
+              if (!strcmp((ifaptr)->ifa_name, pos->ifa_name) && (((ifaptr)->ifa_addr)->sa_family == AF_LINK)) {
+                ptr = (unsigned char *) LLADDR((struct sockaddr_dl *) (ifaptr)->ifa_addr);
+                char buff[100];
 
-              snprintf(buff, sizeof(buff), "%02x:%02x:%02x:%02x:%02x:%02x",
-                *ptr, *(ptr + 1), *(ptr + 2), *(ptr + 3), *(ptr + 4), *(ptr + 5));
-              mac_address = buff;
-              break;
+                snprintf(buff, sizeof(buff), "%02x:%02x:%02x:%02x:%02x:%02x",
+                  *ptr, *(ptr + 1), *(ptr + 2), *(ptr + 3), *(ptr + 4), *(ptr + 5));
+                mac_address = buff;
+                break;
+              }
             }
-          }
 
-          freeifaddrs(ifap);
+            freeifaddrs(ifap);
 
-          if (ifaptr != NULL) {
-            BOOST_LOG(verbose) << "Found MAC of "sv << pos->ifa_name << ": "sv << mac_address;
-            return mac_address;
+            if (ifaptr != NULL) {
+              BOOST_LOG(verbose) << "Found MAC of "sv << pos->ifa_name << ": "sv << mac_address;
+              return mac_address;
+            }
           }
         }
       }

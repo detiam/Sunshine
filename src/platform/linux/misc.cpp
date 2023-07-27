@@ -138,6 +138,28 @@ namespace platf {
     return { port, std::string { data } };
   }
 
+  bool
+  match_ipv6_prefix64(const std::string &address_one, const std::string &address_two) {
+    sockaddr_in6 one;
+    constexpr int pton_success = 1;
+    int convert_res = pton_success;
+
+    convert_res = inet_pton(AF_INET6, address_one.c_str(), &one.sin6_addr);
+    if (convert_res != pton_success) {
+      return false;
+    }
+    int64_t prefix_one = *(int64_t *) &one.sin6_addr.s6_addr;
+
+    sockaddr_in6 two;
+    convert_res = inet_pton(AF_INET6, address_two.c_str(), &two.sin6_addr);
+    if (convert_res != pton_success) {
+      return false;
+    }
+    int64_t prefix_two = *(int64_t *) &two.sin6_addr.s6_addr;
+
+    return prefix_one == prefix_two;
+  }
+
   std::string
   get_mac_address(const std::string_view &address) {
     auto ifaddrs = get_ifaddrs();

@@ -1612,39 +1612,44 @@ namespace stream {
         BOOST_LOG(debug) << "Received ping from "sv << peer.address() << ':' << port << " ["sv << util::hex_vec(msg) << ']';
         // Update connection details.
         {
-          auto addressChanged = peer.address() != final_address;
-
           auto &connections = ref->audio_video_connections;
+
           auto lg = connections.lock();
-
-          if (addressChanged) {
-            BOOST_LOG(info) << "Address changed to "sv << final_address.to_string();
-            peer.port(port);
-            peer.address(final_address);
-            connections->emplace_back(final_address.to_string(), port);
-          }
-          else {
-            auto addr_str = peer.address().to_string();
-            std::remove_reference_t<decltype(*connections)>::iterator pos = std::end(*connections);
-            for (auto it = std::begin(*connections); it != std::end(*connections); ++it) {
-              TUPLE_2D_REF(addr, port_ref, *it);
-
-              if (!port_ref && addr_str == addr) {
-                pos = it;
-              }
-              else if (port_ref == port) {
-                break;
-              }
-            }
-
-            if (pos == std::end(*connections)) {
+          
+          // Only if match ipv6 address.
+          if (final_address.is_v6() && peer.address() != final_address) {
+            if (!final_address.to_v6().is_v4_mapped()) {
+              BOOST_LOG(debug) << "Address changed to "sv << final_address.to_string();
+              peer.address(final_address);
+              peer.port(port);
+              connections->emplace_back(final_address.to_string(), port);
               continue;
             }
-
-            pos->second = port;
-            peer.port(port);
           }
+
+          auto addr_str = peer.address().to_string();
+
+          std::remove_reference_t<decltype(*connections)>::iterator pos = std::end(*connections);
+
+          for (auto it = std::begin(*connections); it != std::end(*connections); ++it) {
+            TUPLE_2D_REF(addr, port_ref, *it);
+
+            if (!port_ref && addr_str == addr) {
+              pos = it;
+            }
+            else if (port_ref == port) {
+              break;
+            }
+          }
+
+          if (pos == std::end(*connections)) {
+            continue;
+          }
+
+          pos->second = port;
+          peer.port(port);
         }
+
         return port;
       }
 
